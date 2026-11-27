@@ -10,7 +10,7 @@
 
 DeepSeek Harness 其实已经把这件事投影到了浏览器：`@deepseek-ai/dsh-client-ui-session` 发布的 `sessionStatus` 里每个 session 都带 `pendingInteraction`。只是除了侧栏那个小黄点，没有任何地方消费它。这个插件就消费它。
 
-和系统通知类插件的区别：通知在**窗口有焦点时通常是哑的**，而「切 tab 找人」恰好发生在窗口有焦点的时候。这个插件全程在页面里，不需要通知权限，也不会因为你在看别的 tab 就沉默。
+和系统通知类插件的区别：本插件全程在页面里，不需要通知权限，也不依赖窗口是否在后台 —— 你正盯着这个窗口、只是在别的 tab 里时，它照样把待办摆在你眼前。系统通知在窗口处于前台时通常不会弹出，而「切 tab 找人」恰好就发生在这时候。
 
 ## 装上之后你会得到
 
@@ -26,14 +26,16 @@ DeepSeek Harness 其实已经把这件事投影到了浏览器：`@deepseek-ai/d
 dsh plugin --profile web add dsh-approval-radar
 ```
 
-`dsh plugin add` 会自动把包名追加进 `~/.dsh/profiles/web/package.json` 的 `dsh.profile.bundles` 并跑 pnpm。装完重启 `dsh web`（或刷新页面）即可生效。
+`dsh plugin add` 会自动把包名追加进 `~/.dsh/profiles/web/package.json` 的 `dsh.profile.bundles` 并跑 pnpm。装完重启 `dsh web`（或刷新页面）即可生效 —— 服务已经在跑时不必重启，刷新页面就够（约一两秒后启动图里才会带上新插件）。
 
 从源码装（改代码时用这个，改完刷新页面即热重载）：
 
 ```bash
 git clone https://github.com/LiuQhahah/dsh-approval-radar.git
-dsh plugin --profile web add link:"$PWD/dsh-approval-radar"
+dsh plugin --profile web add link:"$(git rev-parse --show-toplevel)"
 ```
+
+第二条命令要在 **clone 出来的仓库目录里**执行（`git rev-parse --show-toplevel` 会自己找到仓库根目录，所以在仓库的任意子目录里也行）。如果你习惯先 `cd` 到上一层再执行，把 `"$(git rev-parse --show-toplevel)"` 换成 `"$PWD/dsh-approval-radar"`。
 
 ### 手动安装（等价）
 
@@ -57,13 +59,15 @@ dsh plugin --profile web remove dsh-approval-radar
 ## 要求
 
 - DeepSeek Harness `>= 0.2.2-rc.5`（`package.json` 的 `engines.dsh` 声明，装到更老的版本会被直接拒绝，而不是静默出错）。
+- Node.js `>= 20`（`engines.node` 声明）。
+- `pnpm` 在 `PATH` 上：`dsh plugin` 只是把参数转发给 pnpm，没装会报 `spawn pnpm ENOENT`（exit 127）。手动安装那一步的 `pnpm install` 也需要它。
 - Web GUI（`dsh web` 或桌面版）。桌面版共用同一套前端，浮标与快捷键应当同样可用，但**未在桌面版实测**；系统通知不是本插件的路径。
 - 不需要额外权限、不需要网络请求、不写任何文件。
 
 ## 换位置 / 换快捷键
 
 - 位置：`client.js` 顶部 CSS 里的 `.approval-radar { top: 50%; right: 14px; }`。右下角已被 pet / whale 挂件占用，顶部是会话标题栏，底部是输入框，右侧中部是唯一常年空着的一条带。面板是 `position: absolute` 向上展开的，所以点开时胶囊本身不会移动。
-- 快捷键：`client.js` 里 `SHORTCUT_ID` 对应的 `defaults`。注意 **不要给 `web:linux` 加条目**：`isWebBindingAllowed`（`dsh-client-shortcuts/src/binding.ts:96-112`）在 Linux Web 上只认 `Slash+primary`、`Comma+primary+shift`、`Period+primary+shift` 三种硬编码组合，而 `register`（`src/client/registry.ts:91`）遇到不合法 profile 会**抛异常** —— 那会让整条注册在所有平台上一起失效，不只是 Linux。官方 `settings.open` 同样没有 `web:linux` 条目。也可以装好后在设置里改。
+- 快捷键：`client.js` 里 `SHORTCUT_ID` 对应的 `defaults`。注意 **不要给 `web:linux` 加条目**：`isWebBindingAllowed`（`dsh-client-shortcuts/src/binding.ts:96-112`）在 Linux Web 上只认 `Slash+primary`、`Comma+primary+shift`、`Period+primary+shift` 三种硬编码组合，而 `register`（`src/client/registry.ts:92`）遇到不合法 profile 会**抛异常** —— 那会让整条注册在所有平台上一起失效，不只是 Linux。官方 `settings.open` 同样没有 `web:linux` 条目。也可以装好后在设置里改。
 
 ## 实现要点
 
@@ -80,7 +84,7 @@ dsh plugin --profile web remove dsh-approval-radar
 npm test
 ```
 
-两个测试都在 Node 里跑，不需要 dsh 安装，也不需要浏览器：
+两个测试都在 Node 里跑，不需要 dsh 安装，也不需要浏览器。`test/` 会随 npm 包一起发布，所以从 npm 装下来的副本里跑 `npm test` 同样能过（不需要 `npm install` 装任何依赖）：
 
 - `test/registrations.mjs` — 用 `node:vm` 加载 `client.js`，断言模块 id、导出、注入的服务、注册的三条 effect、双语字典、`shell.overlay` 座位、快捷键的五个 profile 与绑定、`resolve()` 的跳转目标，以及原型链污染（`kind: 'toString'`）被忽略。
 - `test/render.mjs` — 用线性 hook 顺序的 React 桩渲染组件，断言胶囊文案、无待办时不渲染、行数、排序（approval → plan-review → question）与每行内容。
