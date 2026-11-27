@@ -57,7 +57,7 @@ dsh plugin --profile web remove dsh-approval-radar
 ## 要求
 
 - DeepSeek Harness `>= 0.2.2-rc.5`（`package.json` 的 `engines.dsh` 声明，装到更老的版本会被直接拒绝，而不是静默出错）。
-- Web GUI（`dsh web` 或桌面版）。桌面版里浮标和快捷键同样可用；系统通知不是本插件的路径。
+- Web GUI（`dsh web` 或桌面版）。桌面版共用同一套前端，浮标与快捷键应当同样可用，但**未在桌面版实测**；系统通知不是本插件的路径。
 - 不需要额外权限、不需要网络请求、不写任何文件。
 
 ## 换位置 / 换快捷键
@@ -72,6 +72,7 @@ dsh plugin --profile web remove dsh-approval-radar
 - 徽标挂在 `shell.overlay`（frame 级浮层，本身 click-through，条目各自 opt-in 指针事件），不与侧栏 / 右栏 / 底部栏抢座位。
 - `document.title` 的处理：`dsh-client-ui-layout` 的 `DocumentTitle` 会在会话切换时重写整个标题，所以本插件把 `⚠N ` 前缀贴回剥离后的基名上。观察范围只限 `<title>` 元素本身（另有一个 `<head>` childList observer 负责在标题元素被整个替换时重挂），不监听 `<head>` 的子树内容 —— 否则样式表、`<meta>`、preload 的任何变动都会白跑一遍。自己写的那次按值识别，不触发回环。
 - 纯 JS、免构建：`client.js` 直接是浏览器侧 bundle（`window.__ModuleLoader__.load`），改完文件刷新页面即生效。
+- 快捷键是浮标的附加层，不是独立能力：`resolve()` 读的是浮标组件渲染时发布的行集合（`waitingSnapshot`），首帧之前为 `null`，此时快捷键直接放行。正常组合下浮标必然挂载，所以实际感知不到；但如果你把 `shell.overlay` 座位拿掉，快捷键会静默失效而不是另找数据源。
 
 ## 开发
 
@@ -96,7 +97,7 @@ npm test
 
 ## 已知边界
 
-- `sessionStatus` 是**本页自己**从 waterfall 收到的请求投影出来的，所以徽标反映的是这个 tab 已经收到的审批请求。多个 tab 都连着时都会收到，因此各 tab 的计数一致（这一条是依据投递逻辑的预期，未做双 tab 实测）。
+- `sessionStatus` 是**本页自己**从 waterfall 收到的请求投影出来的，所以徽标反映的是这个 tab 已经收到的审批请求。计数是「本 tab 没在看的那些」—— 两个 tab 各自显示的会话不同，数字就**可以不同**，而且这是对的：那个数字就是本 tab 真正能一键跳过去的会话数。
 - 如果某个会话的审批请求是在这个 tab 还没连接时发出的，这个 tab 的 `sessionStatus` 里就没有它 —— 需要刷新。这是 `ui-session` 的既定行为，不是本插件能改的。
 - 自动聚焦是尽力而为：卡片在跳转后一两帧才挂载，插件用 `requestAnimationFrame` 轮询到 1500ms 为止；如果那之前用户已经在某个输入框里打字，就不抢焦点。
 
