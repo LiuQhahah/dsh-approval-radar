@@ -1,0 +1,67 @@
+{
+  "name": "dsh-approval-radar",
+  "version": "0.1.0",
+  "description": "One-click jump to the DeepSeek Harness session that is waiting for your approval.",
+  "license": "MIT",
+  "author": "Qiang Liu <liuqiang9596@gmail.com>",
+  "homepage": "https://github.com/LiuQhahah/dsh-approval-radar#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LiuQhahah/dsh-approval-radar.git"
+  },
+  "bugs": {
+    "url": "https://github.com/LiuQhahah/dsh-approval-radar/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "approval",
+    "session",
+    "navigation"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node test/registrations.mjs && node test/render.mjs"
+  },
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.2-rc.5"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-session",
+        "@deepseek-ai/dsh-client-ui-workspace",
+        "@deepseek-ai/dsh-client-shortcuts"
+      ]
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Approval radar",
+    "description": "Lists every session that is waiting for you, right inside the page. A pill on the right edge shows the count and opens the list; the tab title carries the same count as a warning prefix; and ⇧⌘J jumps to the next waiting session. Picking a row switches to that session and puts keyboard focus on its approval card, so Enter approves and Esc rejects without another click. Reads only the session status the page already holds, so it needs no notification permission and keeps working while the window is focused. It cannot decide an approval for you, and a request that arrived before this tab connected appears only after a reload."
+  }
+}
